@@ -12,6 +12,7 @@
 
 - **利用者のアプリ**: https://tyra0119.github.io/pj_ParcelTransit/
 - **業者の画面（サンプル）**: https://tyra0119.github.io/pj_ParcelTransit/carrier.html
+- **紹介動画（2 分 57 秒）**: https://www.youtube.com/watch?v=WnPI8yp2h8g
 
 2 つの窓を並べると、利用者のアプリでの集荷の依頼や不在の連絡が、業者の画面にすぐ届きます。
 
