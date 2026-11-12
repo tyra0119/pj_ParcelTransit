@@ -78,7 +78,11 @@ export function createMap(area, { focus = () => null, onTap = () => {} } = {}) {
         gsi: {
           type: 'raster', tileSize: 256, maxzoom: 18,
           tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
-          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a> ／ 街区: 国土交通省 位置参照情報 ／ 世帯数: e-Stat 国勢調査2020 ／ バス: 公共交通オープンデータセンター',
+          // 出典の全文は manual.html#credits（書き方は各提供元の決まりに合わせる）
+          attribution: '出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院（地理院タイル）</a>'
+            + '／「<a href="https://nlftp.mlit.go.jp/isj/" target="_blank">位置参照情報ダウンロードサービス</a>」（国土交通省）、「令和2年国勢調査 小地域集計」（総務省統計局、<a href="https://www.e-stat.go.jp/" target="_blank">e-Stat</a>）を加工して作成'
+            + '／東京都交通局・公共交通オープンデータ協議会、東京都交通局 バス関連リアルタイム情報、<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank">CC BY 4.0</a>'
+            + '／<a href="manual.html#credits" target="_blank">出典の全文</a>',
         },
       },
       layers: [{ id: 'gsi', type: 'raster', source: 'gsi' }],

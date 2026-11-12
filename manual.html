@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>マニュアル — にもつ停留所</title>
+<meta name="description" content="にもつ停留所（宅配トラックを路線バスのように）の使い方。配達・不在・再配達・集荷の体験のしかた、画面の見方、データの出典">
+<style>
+:root { --ink: #202124; --muted: #5f6368; --line: #dadce0; --bg: #f8f9fa; --accent: #e8710a; --blue: #1a73e8; --A: #2f6fc0; --B: #7a52c7; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif; color: var(--ink); background: var(--bg); line-height: 1.75; font-size: 15px; }
+a { color: var(--blue); }
+.top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+.top h1 { margin: 0; font-size: 17px; }
+.top h1 small { font-size: 12px; color: var(--muted); font-weight: normal; margin-left: 6px; }
+.top nav { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-size: 13px; text-decoration: none; color: var(--ink); background: #fff; white-space: nowrap; }
+.btn.main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: bold; }
+.wrap { display: grid; grid-template-columns: 220px 1fr; gap: 24px; max-width: 1180px; margin: 0 auto; padding: 20px 16px 60px; }
+.toc { position: sticky; top: 64px; align-self: start; font-size: 13px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.toc b { display: block; margin-bottom: 4px; }
+.toc ol { margin: 0; padding-left: 18px; }
+.toc li { margin: 2px 0; }
+.toc a { text-decoration: none; color: var(--ink); }
+.toc a:hover { color: var(--blue); }
+main section { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px 24px; margin-bottom: 18px; }
+h2 { margin: 0 0 8px; font-size: 21px; border-left: 5px solid var(--accent); padding-left: 10px; }
+h3 { margin: 18px 0 6px; font-size: 16px; }
+.lead { font-size: 16px; }
+.muted { color: var(--muted); font-size: 13px; }
+.note { background: #fff4d6; border: 1px solid #d99a1e; border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.warn { background: #fde7e6; border: 1px solid #e5a29d; border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+figure { margin: 12px 0; }
+figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.flow { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.flow.two { grid-template-columns: 1fr 1fr; }
+ol.steps { padding-left: 22px; }
+ol.steps li { margin: 6px 0; }
+.ui { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 0 9px; font-size: 13px; background: #f1f3f4; white-space: nowrap; }
+.tab { display: inline-block; border-bottom: 3px solid var(--blue); color: var(--blue); font-weight: bold; font-size: 13px; padding: 0 4px; }
+.co { display: inline-block; font-size: 11px; font-weight: bold; border-radius: 4px; padding: 0 5px; color: #fff; }
+.co.A { background: var(--A); } .co.B { background: var(--B); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0; }
+th, td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: #f1f3f4; white-space: nowrap; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fafafa; }
+.card b { display: block; font-size: 15px; }
+.card .n { display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; text-align: center; font-weight: bold; line-height: 24px; margin-right: 4px; }
+dl.faq dt { font-weight: bold; margin-top: 12px; }
+dl.faq dt::before { content: "Q. "; color: var(--accent); }
+dl.faq dd { margin: 2px 0 0 1.6em; }
+ul.credits li { margin: 8px 0; word-break: break-all; }
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: 1fr; padding: 12px 8px 40px; }
+  .toc { position: static; }
+  .flow, .flow.two { grid-template-columns: 1fr; }
+  .flow figure img { max-width: 320px; }
+  .cards { grid-template-columns: 1fr 1fr; }
+  main section { padding: 14px 14px; }
+  .top h1 small { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>にもつ停留所 マニュアル <small>宅配トラックを路線バスのように</small></h1>
+  <nav>
+    <a class="btn main" href="index.html">アプリを開く</a>
+    <a class="btn" href="carrier.html" target="_blank">業者の画面（サンプル）</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <aside class="toc">
+    <b>もくじ</b>
+    <ol>
+      <li><a href="#about">にもつ停留所とは</a></li>
+      <li><a href="#start">はじめに（3 つの画面）</a></li>
+      <li><a href="#screen">画面の見方</a></li>
+      <li><a href="#public">公開地図</a></li>
+      <li><a href="#delivery">体験 1 配達</a></li>
+      <li><a href="#absent">体験 2 不在</a></li>
+      <li><a href="#redeliver">体験 3 再配達</a></li>
+      <li><a href="#pickup">体験 4 集荷</a></li>
+      <li><a href="#carrier">業者の画面（サンプル）</a></li>
+      <li><a href="#map">地図の操作</a></li>
+      <li><a href="#privacy">プライバシーの決まり</a></li>
+      <li><a href="#words">ことば</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+      <li><a href="#credits">データの出典・お問い合わせ</a></li>
+    </ol>
+  </aside>
+
+  <main>
+    <section id="about">
+      <h2>にもつ停留所とは</h2>
+      <p class="lead">宅配トラックを<b>路線バス</b>に、街区（○丁目○番のひとかたまり）を<b>停留所</b>に見立てて、「荷物があと何停留所で来るか」を見られるようにするアプリです。配達は「降りる」、集荷は「乗る」にあたります。</p>
+      <p>時間を指定しても荷物がいつ来るのか分からず出かけられない、不在で持ち戻りになり再配達になる——こうした困りごとは、利用者からはトラックがいつ来るのかが、業者からは家に人がいるのかが、おたがいに見えないことから起きています。にもつ停留所は、住所を出さずに「いつ来るか」を見せ、不在の連絡・再配達・集荷の依頼をつなぎます。</p>
+      <div class="note">これは公共交通オープンデータチャレンジ2026 の応募作の<b>デモ</b>です。舞台は東京都江東区の亀戸・大島（実在の街区）ですが、<b>配達のデータは模擬</b>、宅配会社の <span class="co A">A社</span>・<span class="co B">B社</span> は<b>架空</b>です。時計もデモの時刻で進みます。</div>
+    </section>
+
+    <section id="start">
+      <h2>はじめに（3 つの画面）</h2>
+      <div class="cards" style="grid-template-columns: repeat(3, 1fr)">
+        <div class="card"><b><a href="index.html">利用者のアプリ</a></b>公開地図・集荷お願い・わたしの荷物の 3 つのタブ。ふだん使う画面です。</div>
+        <div class="card"><b><a href="carrier.html" target="_blank">業者の画面（サンプル）</a></b>依頼や連絡が業者に届く様子を見せるための見本。宅配各社はすでに自社のシステムを持っているので、業者向けのアプリを提案するものではありません。</div>
+        <div class="card"><b>このマニュアル</b>使い方と、4 つの体験の手順。</div>
+      </div>
+      <p>おすすめの見方: <b>パソコンで 2 つの窓を並べる</b>と、利用者のアプリで頼んだことが、業者の画面（サンプル）にすぐ届くのが見えます。2 つの画面は同じブラウザの中で同じデモを共有しています。</p>
+      <p>4 つの体験は、どれも数分で終わります。右上の速さを <span class="ui">60倍</span> にすると早く進みます。</p>
+      <div class="cards">
+        <div class="card"><span class="n">1</span><b><a href="#delivery">配達</a></b>お届けQR から「あと○停留所」</div>
+        <div class="card"><span class="n">2</span><b><a href="#absent">不在</a></b>先に伝えて、次の便へ</div>
+        <div class="card"><span class="n">3</span><b><a href="#redeliver">再配達</a></b>持ち戻り → 便を選んで依頼</div>
+        <div class="card"><span class="n">4</span><b><a href="#pickup">集荷</a></b>会社を選んで、走っている便に</div>
+      </div>
+    </section>
+
+    <section id="screen">
+      <h2>画面の見方</h2>
+      <figure><img src="manual/img/01-public.jpg" alt="利用者のアプリの画面。左に操作盤、右に地図" width="1280" height="800" loading="lazy"><figcaption>利用者のアプリ（パソコン）。左が操作盤、右が地図</figcaption></figure>
+      <table>
+        <tr><th>場所</th><th>中身</th></tr>
+        <tr><td>上の帯・右</td><td>デモの時刻と速さ（<span class="ui">1倍</span> <span class="ui">10倍</span> <span class="ui">30倍</span> <span class="ui">60倍</span>）。はじめは 30倍 で、現実の 1 分がデモの 30 分です</td></tr>
+        <tr><td>左・タブ</td><td><span class="tab">公開地図</span> だれでも見られる地図 ／ <span class="tab">集荷お願い</span> 家まで集荷に来てもらう ／ <span class="tab">わたしの荷物</span> 自分の荷物がいつ来るか</td></tr>
+        <tr><td>地図・右上</td><td>全画面</td></tr>
+        <tr><td>地図・右下</td><td>上から 方角（押すと北が上に戻り、傾きも真上からに）・現在地・拡大（＋）・縮小（−）</td></tr>
+        <tr><td>地図・左下</td><td>ⓘ を押すと出典が出ます</td></tr>
+      </table>
+      <p class="muted">現在地ボタン: デモのエリア（亀戸・大島）の外にいるときや位置が取れないときは、追跡中の荷物の停留所、なければ登録住所を画面の中ほどに出します。</p>
+    </section>
+
+    <section id="public">
+      <h2>公開地図</h2>
+      <p>トラックが巡回順に街区（停留所）を回っていく様子を見せる地図です。宅配会社が公共交通オープンデータセンター（ODPT）に出す「公開層」だけで描いています。<b>だれが見ても同じ</b>で、家の位置は出ません。</p>
+      <table>
+        <tr><th>色・印</th><th>意味</th></tr>
+        <tr><td><i class="sw" style="background:#e8710a"></i>濃い橙</td><td>次に寄る停留所（街区）</td></tr>
+        <tr><td><i class="sw" style="background:linear-gradient(90deg,#fbbc04,#fde293)"></i>黄色</td><td>これから寄る停留所。濃いほど近い</td></tr>
+        <tr><td><i class="sw" style="background:#bdc1c6"></i>灰色</td><td>寄り終えた停留所</td></tr>
+        <tr><td>○ と記号（K1 など）</td><td>トラック。位置は街区単位に粗くし、3 分遅らせています。「集荷受付中 〜17:31」は集荷の締切</td></tr>
+        <tr><td>点線</td><td>巡回の順路</td></tr>
+      </table>
+      <ul>
+        <li>左のトラックの一覧: 会社・便の名前、集荷の受付の状態、何停留所まで回ったか。押すと地図がそのトラックへ動きます</li>
+        <li>街区を押すと、その停留所の情報と <span class="ui">ここを登録住所にする</span> が出ます</li>
+        <li><span class="ui">参考: 都営バスの実際の位置も出す</span> にチェックを入れると、都営バスの今の位置（ODPT のリアルタイムデータ）を緑の点で出します。<b>宅配とは関係ありません</b>。バスの位置情報がこう見える、という参考です</li>
+        <li>「公開データ（GTFS-Flex / GTFS-RT）」を開くと、公開層の中身（stop_times.txt・locations.geojson など）を見られます</li>
+      </ul>
+    </section>
+
+    <section id="delivery">
+      <h2>体験 1 配達: お届けQR から「あと○停留所」</h2>
+      <div class="flow">
+        <div>
+          <ol class="steps">
+            <li><span class="tab">わたしの荷物</span> を開く</li>
+            <li><span class="ui">デモ: 宅配会社からお届けQR がメールで届く</span> を押す。荷物のカードが出ます</li>
+            <li>カードに <b>あと○停留所</b>、点の並び（●がトラック、◎が自分の停留所）、<b>到着の時間幅</b>、便の名前が出ます。地図では自分の停留所が太い線で囲まれます</li>
+            <li>時間がたつと「あと○停留所」が減り、「まもなく（次がこの停留所です）」→「お届けしました」と変わります</li>
+          </ol>
+          <p><b>お届けQR</b> には、会社・便・停留所（街区）・期限・合言葉だけが入っていて、<b>住所は入っていません</b>。アプリは宅配会社に問い合わせず、QR と公開地図のデータだけで手元で計算します。</p>
+          <p class="muted">QR の中身（<code>nimotsu:v1?f=A&amp;t=…</code>）を上の欄に貼って <span class="ui">読む</span> を押しても同じです。</p>
+        </div>
+        <figure><img src="manual/img/02-mine.jpg" alt="わたしの荷物のカード。あと10停留所、16:30〜17:00" width="380" height="800" loading="lazy" style="width:300px"><figcaption>荷物のカード</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="absent">
+      <h2>体験 2 不在: 先に伝えて、次の便へ</h2>
+      <div class="flow">
+        <div>
+          <ol class="steps">
+            <li>荷物のカードで <span class="ui">この時間は不在にする</span> を押す（トラックがまだ 3 停留所以上先のときに出ます）</li>
+            <li>カードが「不在のご連絡を受けました」に変わります。トラックはこの便ではその停留所に寄りません（荷物がほかにない街区は飛ばします）</li>
+            <li>便が終わると、宅配会社から<b>次の便のお届けQR</b> がお知らせで届き、カードが新しい QR に入れ替わります</li>
+          </ol>
+          <p>不在の連絡は「書く」操作なので、公開データではなく、その宅配会社の申し込み先へ直接届きます。業者の画面（サンプル）の「届いた依頼・連絡」に出ます。</p>
+        </div>
+        <figure><img src="manual/img/03-absent.jpg" alt="不在のご連絡を受けました、のカード" width="380" height="800" loading="lazy" style="width:300px"><figcaption>不在を伝えたあと（下のカード）</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="redeliver">
+      <h2>体験 3 再配達: 持ち戻り → 便を選んで依頼</h2>
+      <p>ここでは「連絡せずに留守にしていた」場合を体験します。</p>
+      <div class="flow two">
+        <div>
+          <ol class="steps">
+            <li>荷物のカードで <span class="ui">デモ: 留守だったことにする</span> を押す。カードが「留守にしています（デモ）」に変わります</li>
+            <li>トラックは停留所に寄りますが、渡せないので持ち戻ります（速さを 60倍 にすると早く進みます）</li>
+            <li>不在票の代わりに<b>再配達の QR</b> が届き、カードが「留守のため持ち戻りました」に変わります</li>
+            <li>同じ会社のいま集荷を受け付けている便が、前に寄った街区に近い順にボタンで並びます（いちばん上が「いちばん近い」）。受け取れる便を押します</li>
+            <li>受けてもらえると「再配達をお受けしました（○時ごろ）」と出て、新しいお届けQR に入れ替わります。差し込まれたばかりの停留所は、次のまとめ更新（3 分ごと）までは「受け付けました」と出て、そのあと「あと○停留所」に変わります</li>
+          </ol>
+          <p>断られたときは理由が出ます（寄り道が長くなりすぎる・荷台に余裕がない・便の終わりに間に合わない など）。ほかの便を選んでください。受付中の便がないときは、次の便が出ると選べるようになります。</p>
+        </div>
+        <div>
+          <figure><img src="manual/img/04-away.jpg" alt="留守にしています（デモ）のカード" width="380" height="800" loading="lazy" style="width:300px"><figcaption>留守にしたところ（上のカード）</figcaption></figure>
+          <figure><img src="manual/img/05-redeliver.jpg" alt="留守のため持ち戻りました。再配達の便を選ぶボタン" width="380" height="800" loading="lazy" style="width:300px"><figcaption>再配達の QR が届き、便を選ぶ</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="pickup">
+      <h2>体験 4 集荷: 会社を選んで、走っている便に</h2>
+      <figure><img src="manual/img/07-pickup.jpg" alt="集荷お願いの画面。B社を指定して受け付けられた結果" width="1280" height="800" loading="lazy"><figcaption>B社を指定して頼んだところ</figcaption></figure>
+      <ol class="steps">
+        <li><span class="tab">集荷お願い</span> を開く</li>
+        <li><b>登録住所</b>: <span class="ui">地図で家の場所を選ぶ</span> を押してから地図で家の場所を押す（公開地図で街区を押して <span class="ui">ここを登録住所にする</span> でも決められます）。住所はこのブラウザの中にだけ置きます</li>
+        <li><b>荷物のサイズ</b>: 60・80・100・120</li>
+        <li><b>宅配会社</b>: <span class="ui">指定しない</span> ／ <span class="ui">A社</span> ／ <span class="ui">B社</span>。指定しないと、受付中の便から寄り道がいちばん小さい便をアプリが選びます。指定すると、依頼はその会社の申し込み先にだけ届きます</li>
+        <li><b>近くの便</b>: 会社ごとに、家にいちばん近い便が集荷を受け付けているかが出ます（公開データ）</li>
+        <li><span class="ui">集荷お願い</span> を押すと、宅配会社が寄り道・荷台・便の終わりの時刻を見て判断し、受けられれば<b>伺う時間幅</b>と QR が返ってきます。QR は <span class="tab">わたしの荷物</span> に入り、「あと○停留所」が見られます</li>
+      </ol>
+      <p>集荷の停留所は、公開地図には次のまとめ更新で、ほかの停留所と同じ見た目で入ります。<b>配達か集荷かは区別されない</b>ので、地図からはだれが集荷を頼んだか分かりません。</p>
+    </section>
+
+    <section id="carrier">
+      <h2>業者の画面（サンプル）</h2>
+      <div class="warn"><b>この画面はサンプルです。</b>宅配各社はすでに自社の業務システムを持っているはずなので、業者向けのアプリを提案するものではありません。デモで「業者の中で何が起きているか」を見せるために作りました。</div>
+      <figure><img src="manual/img/08-carrier.jpg" alt="業者の画面（サンプル）。家の位置、集計、届いた依頼" width="1280" height="800" loading="lazy"><figcaption>業者の画面（サンプル）</figcaption></figure>
+      <ul>
+        <li><b>家の位置</b>（青＝配達、赤＝集荷。模擬）と、トラックの本当の位置。<b>業者だけ</b>が見る情報で、利用者のアプリにも公開データにも出ません</li>
+        <li><span class="ui">公開地図を重ねて比べる</span>: 公開層ではどこまで粗くなっているかを見比べられます</li>
+        <li>集計: 集荷の受付・断った数、集荷で延びた走行、不在の事前連絡、不在で短くなった時間、再配達の依頼</li>
+        <li><b>届いた依頼・連絡</b>: 利用者のアプリからの集荷（会社の指定の有無）・不在・留守・再配達</li>
+        <li>便の一覧（会社・便、残りの停留所、集荷の受付）</li>
+        <li><span class="ui">デモを最初からやりなおす</span>: デモの状態を最初に戻します。利用者のアプリの荷物もなくなります</li>
+      </ul>
+    </section>
+
+    <section id="map">
+      <h2>地図の操作</h2>
+      <p>Google マップと同じ操作です。</p>
+      <table>
+        <tr><th>マウス</th><td>左ドラッグで移動、右ドラッグで回転、ホイールで拡大・縮小</td></tr>
+        <tr><th>指 1 本</th><td>移動</td></tr>
+        <tr><th>指 2 本</th><td>広げる・狭めると拡大・縮小、ひねると回転、そのまま動かすと移動、2 本そろえて上下に動かすと傾き</td></tr>
+        <tr><th>ボタン</th><td>右下の 方角・現在地・＋・−、右上の全画面</td></tr>
+      </table>
+    </section>
+
+    <section id="privacy">
+      <h2>プライバシーの決まり</h2>
+      <p>データを 3 つの層に分け、だれが何を見られるかを決めています。</p>
+      <table>
+        <tr><th>層</th><th>だれが見る</th><th>中身</th></tr>
+        <tr><td>業者層</td><td>その宅配会社だけ</td><td>住所、配達か集荷か、巡回順、本当の位置</td></tr>
+        <tr><td>公開層</td><td>だれでも（ODPT）</td><td>街区単位の停留所、巡回順、時間幅、おおまかな位置（3 分遅れ）、集荷の受付と締切</td></tr>
+        <tr><td>本人層</td><td>本人だけ（アプリの手元で計算）</td><td>自分の荷物の「あと○停留所」と時間幅</td></tr>
+      </table>
+      <ul>
+        <li>停留所は家ではなく<b>街区</b>。荷物が 1 件だけの街区は、隣の街区とまとめます</li>
+        <li><b>配達か集荷かを区別しません</b>（GTFS の乗降区分は全部「要予約」）</li>
+        <li>公開地図は <b>3 分ごとにまとめて</b>更新します。頼んだ直後には変わりません</li>
+        <li>トラックの位置は街区単位に粗くし、3 分遅らせます。停まっている間は表示を止めます</li>
+        <li>お届けQR に住所は入れません。自分の荷物と登録住所は、このブラウザの中（localStorage）にだけ置きます</li>
+      </ul>
+    </section>
+
+    <section id="words">
+      <h2>ことば</h2>
+      <table>
+        <tr><th>停留所</th><td>街区（○丁目○番）、または隣り合う街区のまとまり。家ではありません</td></tr>
+        <tr><th>便</th><td>トラックが営業所を出て戻るまでの 1 回の巡回。路線バスの 1 本にあたります</td></tr>
+        <tr><th>お届けQR</th><td>宅配会社から届く QR。会社・便・停留所・期限・合言葉が入っています（住所は入れません）</td></tr>
+        <tr><th>再配達の QR</th><td>持ち戻りになったときに不在票の代わりに届く QR。便と停留所はまだ決まっていません</td></tr>
+        <tr><th>公開層</th><td>宅配会社が ODPT に出すデータ。形式は GTFS-Flex（時刻表）と GTFS-RT（リアルタイム）</td></tr>
+        <tr><th>まとめ更新</th><td>公開層を 3 分ごとにまとめて出しなおすこと</td></tr>
+        <tr><th>申し込み先</th><td>集荷・不在・再配達の依頼を受ける各社の窓口。宛先は公開層（booking_rules）に書きます</td></tr>
+      </table>
+    </section>
+
+    <section id="faq">
+      <h2>よくある質問</h2>
+      <dl class="faq">
+        <dt>本物の荷物を追跡できますか？</dt>
+        <dd>できません。これはデモで、配達のデータは模擬、宅配会社の A社・B社は架空です。実際の宅配会社の荷物には使えません。</dd>
+        <dt>住所が知られることはありませんか？</dt>
+        <dd>公開地図に出るのは街区単位の停留所だけで、配達か集荷かも区別しません。お届けQR にも住所は入りません。登録住所はこのブラウザの中にだけ置き、どこにも送りません（デモでは集荷の依頼のときに街区を業者の画面に渡します）。</dd>
+        <dt>アプリは宅配会社に問い合わせていますか？</dt>
+        <dd>「いつ来るか」を見るときは問い合わせません。お届けQR と公開データだけで手元で計算します。宅配会社へ送るのは、集荷・不在・再配達の依頼だけです。</dd>
+        <dt>時間がずれることはありますか？</dt>
+        <dd>あります。時間幅は目安です。遠い先ほど幅を広く取ります。</dd>
+        <dt>デモを最初からやりなおしたい</dt>
+        <dd><a href="carrier.html" target="_blank">業者の画面（サンプル）</a>の <span class="ui">デモを最初からやりなおす</span> を押してください。</dd>
+        <dt>スマートフォンでも使えますか？</dt>
+        <dd>使えます。画面が狭いときは、地図と操作盤が上下に並びます。2 つの画面を並べる体験はパソコンがおすすめです。</dd>
+        <dt>集荷や再配達を断られた</dt>
+        <dd>トラックの寄り道が長すぎる、荷台に余裕がない、便の終わりに間に合わない、受付を締め切った、のどれかです。ほかの便や会社を選ぶか、次の便が出るのを待ってください。</dd>
+      </dl>
+    </section>
+
+    <section id="credits">
+      <h2>データの出典・お問い合わせ</h2>
+      <h3>使用したオープンデータ</h3>
+      <ul class="credits">
+        <li>東京都交通局・公共交通オープンデータ協議会、東京都交通局 バス関連リアルタイム情報、クリエイティブ・コモンズ・ライセンス 表示4.0国際（<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank">https://creativecommons.org/licenses/by/4.0/deed.ja</a>）<br><span class="muted">公共交通オープンデータセンターから取得。公開地図の「参考: 都営バスの実際の位置」に使用</span></li>
+        <li>出典：位置参照情報ダウンロードサービス（国土交通省）（<a href="https://nlftp.mlit.go.jp/isj/" target="_blank">https://nlftp.mlit.go.jp/isj/</a>）<br><span class="muted">「位置参照情報ダウンロードサービス」（国土交通省）の街区レベル位置参照情報（令和5年、東京都江東区）をもとに、にもつ停留所が街区の区画を作成</span></li>
+        <li>出典：政府統計の総合窓口(e-Stat)（<a href="https://www.e-stat.go.jp/" target="_blank">https://www.e-stat.go.jp/</a>）<br><span class="muted">「令和2年国勢調査 小地域集計」（総務省統計局）を加工して作成（町丁目別の世帯数から、配達件数の模擬データを作成）</span></li>
+        <li>出典：国土地理院（地理院タイル 淡色地図）（<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">https://maps.gsi.go.jp/development/ichiran.html</a>）</li>
+      </ul>
+      <p class="muted">表示される公共交通データは、公共交通事業者から提供されたデータをもとにしていますが、正確・完全とは限りません。配達のデータと宅配会社（A社・B社）は模擬・架空です。このアプリについて、公共交通事業者や宅配会社には問い合わせないでください。</p>
+      <h3>お問い合わせ</h3>
+      <p><a href="https://github.com/tyra0119/pj_ParcelTransit/issues" target="_blank">GitHub の Issues</a> へお寄せください。ソースコード: <a href="https://github.com/tyra0119/pj_ParcelTransit" target="_blank">github.com/tyra0119/pj_ParcelTransit</a> ／ 紹介動画: <a href="https://www.youtube.com/watch?v=WnPI8yp2h8g" target="_blank">YouTube（2 分 57 秒）</a></p>
+    </section>
+  </main>
+</div>
+</body>
+</html>

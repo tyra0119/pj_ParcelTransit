@@ -10,7 +10,7 @@
 </head>
 <body>
 <header class="top">
-  <h1>にもつ停留所 <small>宅配トラックを路線バスのように</small></h1>
+  <h1>にもつ停留所 <small>宅配トラックを路線バスのように</small> <a class="help" href="manual.html" target="_blank" title="使い方（マニュアル）">？使い方</a></h1>
   <div class="clock">
     <span id="clock">--:--</span>
     <span class="speed" role="group" aria-label="デモの速さ">
@@ -30,6 +30,7 @@
     <div class="tab on" id="tab-public">
       <details class="guide" open>
         <summary>体験してみる（4 つの流れ）</summary>
+        <p class="muted" style="margin:4px 0 0">くわしい手順は <a href="manual.html#start" target="_blank">マニュアル</a> に写真つきで。</p>
         <ol>
           <li><b>配達</b>: <a href="#" data-open="mine">わたしの荷物</a>で「デモ: お届けQR がメールで届く」→ QR と公開データから「あと○停留所」を計算</li>
           <li><b>不在</b>: 荷物のカードで「この時間は不在にする」→ その便では寄らず、便が終わると次の便の QR が届く</li>
@@ -63,6 +64,17 @@
         <p>静的データ: <a href="gtfs/stop_times.txt" target="_blank">stop_times.txt</a> ・ <a href="gtfs/locations.geojson" target="_blank">locations.geojson</a> ・ <a href="gtfs/trips.txt" target="_blank">trips.txt</a> ・ <a href="gtfs/booking_rules.txt" target="_blank">booking_rules.txt</a></p>
         <button id="showRt" class="sub">いまの GTFS-RT 相当を見る</button>
         <pre id="rtView" hidden></pre>
+      </details>
+      <details class="rules" id="credits">
+        <summary>データの出典・お問い合わせ</summary>
+        <ul class="credits">
+          <li>東京都交通局・公共交通オープンデータ協議会、東京都交通局 バス関連リアルタイム情報、クリエイティブ・コモンズ・ライセンス 表示4.0国際（<a href="https://creativecommons.org/licenses/by/4.0/deed.ja" target="_blank">https://creativecommons.org/licenses/by/4.0/deed.ja</a>）<br><span class="muted">公共交通オープンデータセンターから取得。「参考: 都営バスの実際の位置」に使用</span></li>
+          <li>出典：位置参照情報ダウンロードサービス（国土交通省）（<a href="https://nlftp.mlit.go.jp/isj/" target="_blank">https://nlftp.mlit.go.jp/isj/</a>）<br><span class="muted">「位置参照情報ダウンロードサービス」（国土交通省）の街区レベル位置参照情報（令和5年、東京都江東区）をもとに、にもつ停留所が街区の区画を作成</span></li>
+          <li>出典：政府統計の総合窓口(e-Stat)（<a href="https://www.e-stat.go.jp/" target="_blank">https://www.e-stat.go.jp/</a>）<br><span class="muted">「令和2年国勢調査 小地域集計」（総務省統計局）を加工して作成（町丁目別の世帯数から、配達件数の模擬データを作成）</span></li>
+          <li>出典：国土地理院（地理院タイル 淡色地図）（<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">https://maps.gsi.go.jp/development/ichiran.html</a>）</li>
+        </ul>
+        <p class="muted">配達のデータと宅配会社（A社・B社）は模擬・架空です。表示される公共交通データは、公共交通事業者から提供されたデータをもとにしていますが、正確・完全とは限りません。このアプリについて、公共交通事業者や宅配会社には問い合わせないでください。</p>
+        <p>お問い合わせ: <a href="https://github.com/tyra0119/pj_ParcelTransit/issues" target="_blank">GitHub の Issues</a> ／ 使い方: <a href="manual.html" target="_blank">マニュアル</a></p>
       </details>
       <p class="demo-link">これは<b>利用者のアプリ</b>です。デモの説明用に、<a href="carrier.html" target="_blank">業者の画面（サンプル）</a>を別の窓で開けます。並べると、ここでの集荷の依頼や不在の連絡がすぐ届きます。業者の画面は、各社がすでに持っている業務システムの代わりに作ったサンプルです。</p>
     </div>
