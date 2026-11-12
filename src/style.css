@@ -1,0 +1,129 @@
+:root {
+  --ink: #202124; --muted: #5f6368; --line: #dadce0; --bg: #f8f9fa;
+  --accent: #e8710a; --blue: #1a73e8; --panel: 380px;
+  font-family: system-ui, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  color: var(--ink);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { display: flex; flex-direction: column; background: var(--bg); }
+button { font: inherit; cursor: pointer; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+.top h1 { font-size: 17px; margin: 0; white-space: nowrap; }
+.top h1 small { font-size: 12px; color: var(--muted); font-weight: normal; margin-left: 6px; }
+.clock { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+#clock { font-size: 18px; font-weight: bold; }
+.speed button { border: 1px solid var(--line); background: #fff; padding: 2px 8px; font-size: 12px; }
+.speed button:first-child { border-radius: 12px 0 0 12px; }
+.speed button:last-child { border-radius: 0 12px 12px 0; }
+.speed button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+main { flex: 1; display: flex; min-height: 0; }
+#panel { width: var(--panel); background: #fff; border-right: 1px solid var(--line); overflow-y: auto; }
+#mapWrap { flex: 1; position: relative; }
+#map { position: absolute; inset: 0; }
+
+.tabs { display: flex; position: sticky; top: 0; background: #fff; border-bottom: 1px solid var(--line); z-index: 1; }
+.tabs button { flex: 1; border: 0; background: none; padding: 10px 4px; font-size: 13px; color: var(--muted); border-bottom: 3px solid transparent; }
+.tabs button.on { color: var(--blue); border-color: var(--blue); font-weight: bold; }
+.tab { display: none; padding: 12px 14px 24px; font-size: 14px; line-height: 1.6; }
+.tab.on { display: block; }
+.lead { margin: 0 0 10px; }
+.lead.warn { background: #fce8e6; padding: 8px 10px; border-radius: 8px; }
+.lead.sample { background: #fff4d6; border: 2px solid #d99a1e; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.muted { color: var(--muted); font-size: 13px; }
+
+.legend { list-style: none; padding: 0; margin: 0 0 8px; font-size: 13px; }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.sw.next { background: var(--accent); }
+.sw.up { background: linear-gradient(90deg, #fbbc04 0%, #fde293 100%); }
+.sw.done { background: #bdc1c6; }
+.sw.truck { background: #fff; border: 3px solid var(--ink); border-radius: 50%; }
+.sw.bus { background: #34a853; border-radius: 50%; width: 10px; height: 10px; margin: 2px; }
+
+.truck-card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 8px 0; cursor: pointer; }
+.truck-card:hover { background: var(--bg); }
+.truck-card .name { font-weight: bold; display: flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.tag { font-size: 11px; border-radius: 10px; padding: 1px 8px; margin-left: auto; white-space: nowrap; }
+.tag.open { background: #e6f4ea; color: #137333; }
+.tag.closed { background: #f1f3f4; color: var(--muted); }
+.bar { height: 6px; background: #f1f3f4; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+
+.rules { margin-top: 12px; font-size: 13px; }
+.rules summary { cursor: pointer; font-weight: bold; }
+pre { font-size: 11px; background: var(--bg); padding: 8px; overflow: auto; max-height: 300px; }
+
+.steps { padding-left: 20px; }
+.steps li { margin-bottom: 12px; }
+.sizes { display: flex; gap: 6px; flex-wrap: wrap; }
+.sizes label { border: 1px solid var(--line); border-radius: 16px; padding: 2px 10px; }
+.sizes label:has(input:checked) { border-color: var(--blue); background: #e8f0fe; }
+.sizes input { margin: 0 4px 0 0; }
+button.main { width: 100%; padding: 12px; border: 0; border-radius: 24px; background: var(--accent); color: #fff; font-size: 16px; font-weight: bold; }
+button.main:disabled { background: #dadce0; cursor: default; }
+button.sub { border: 1px solid var(--line); background: #fff; border-radius: 16px; padding: 4px 12px; margin: 4px 0; }
+button.sub.on { background: #e8f0fe; border-color: var(--blue); }
+.row { display: flex; gap: 6px; }
+.row input { flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 16px; font: inherit; }
+
+.card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 10px 0; }
+.card.ok { border-color: #81c995; background: #f6fbf7; }
+.card.ng { border-color: #f28b82; background: #fef7f6; }
+.card .big { font-size: 22px; font-weight: bold; }
+.card .away { font-size: 30px; font-weight: bold; color: var(--accent); }
+.card .no { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+.card .qr { float: right; margin-left: 8px; }
+.card .qr img { width: 84px; height: 84px; image-rendering: pixelated; }
+.card::after { content: ""; display: block; clear: both; }
+.dots { display: flex; gap: 3px; margin: 6px 0; flex-wrap: wrap; }
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: #fde293; }
+.dots i.me { background: var(--accent); outline: 2px solid var(--ink); }
+.dots i.truck { background: var(--ink); }
+
+.stat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.stat div { background: var(--bg); border-radius: 10px; padding: 8px; }
+.stat b { display: block; font-size: 20px; }
+.stat small { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+td, th { border-bottom: 1px solid var(--line); padding: 4px; text-align: left; }
+.toggle { display: block; margin: 8px 0; }
+
+/* 地図のボタン（右下に縦に 方角・現在地・拡大/縮小） */
+.ctrls { position: absolute; right: 10px; bottom: 28px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.mapbtn { width: 40px; height: 40px; border: 0; background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.3); font-size: 22px; line-height: 1; display: grid; place-items: center; padding: 0; color: #444; }
+.mapbtn svg { width: 24px; height: 24px; }
+.zoom { display: flex; flex-direction: column; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.3); overflow: hidden; }
+.zoom .mapbtn { box-shadow: none; border-radius: 0; }
+.zoom .mapbtn + .mapbtn { border-top: 1px solid var(--line); }
+.mapbtn.full { position: absolute; right: 10px; top: 10px; font-size: 20px; }
+#toast { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); background: rgba(32,33,36,.92); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 13px; max-width: 80%; }
+#mapWrap.picking #map { cursor: crosshair; }
+
+.truck-mk { display: flex; flex-direction: column; align-items: center; pointer-events: auto; cursor: pointer; }
+.truck-mk .ic { width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 4px solid; display: grid; place-items: center; font-size: 11px; font-weight: bold; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.truck-mk .lb { font-size: 10px; background: rgba(255,255,255,.9); border-radius: 6px; padding: 0 4px; margin-top: 2px; white-space: nowrap; }
+
+.home-mk { font-size: 24px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.maplibregl-popup-content { font-size: 13px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .top h1 small { display: none; }
+  main { flex-direction: column-reverse; }
+  #panel { width: auto; height: 46%; border-right: 0; border-top: 1px solid var(--line); }
+  #mapWrap { min-height: 0; }
+  .ctrls { bottom: 16px; }
+}
+
+/* 業者のページ */
+body.carrier .top { background: #3c4043; color: #fff; }
+body.carrier .top h1 small { color: #dadce0; }
+body.carrier .speed button { color: var(--ink); }
+body.carrier .speed button.on { color: #fff; background: #1a73e8; border-color: #1a73e8; }
+#panel h2 { font-size: 14px; margin: 16px 0 4px; }
+.truck-mk.real .ic { background: var(--ink); color: #fff; }
+.truck-mk.real .lb { background: rgba(32,33,36,.85); color: #fff; }
+.demo-link { margin-top: 16px; font-size: 12px; color: var(--muted); }

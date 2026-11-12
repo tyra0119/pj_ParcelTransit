@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>にもつ停留所 — 業者の画面（サンプル）</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body class="carrier">
+<header class="top">
+  <h1>にもつ停留所 <small>業者の画面（サンプル）</small></h1>
+  <div class="clock">
+    <span id="clock">--:--</span>
+    <span class="speed" role="group" aria-label="デモの速さ">
+      <button data-speed="1">1倍</button><button data-speed="10">10倍</button><button data-speed="30">30倍</button><button data-speed="60">60倍</button>
+    </span>
+  </div>
+</header>
+
+<main>
+  <section id="panel">
+    <div class="tab on">
+      <p class="lead sample"><b>この画面はサンプルです。</b>宅配各社はすでに自社の業務システムを持っているはずなので、にもつ停留所が業者向けのアプリを用意するわけではありません。デモで「業者の中で何が起きているか」を見せるために作った画面です。提案するのは、各社の業務システムが<b>公開層を ODPT に出す決まり</b>と、集荷・不在を受ける<b>申し込み先の共通の形式</b>です。</p>
+      <p class="lead warn">ここは<b>業者だけ</b>が見る情報です。家の位置・配達か集荷か・本当の位置は、利用者のアプリにも公開データにも出ません。</p>
+      <label class="toggle"><input type="checkbox" id="showHouses" checked> 家の位置（<span style="color:#1a73e8">●配達</span>・<span style="color:#d93025">●集荷</span>、模擬）</label>
+      <label class="toggle"><input type="checkbox" id="showPublic"> 公開地図を重ねて比べる（街区単位・3分遅れ）</label>
+      <label class="toggle"><input type="checkbox" id="showBuses"> 参考: 都営バスの実際の位置（宅配とは関係なし）</label>
+      <div id="stats"></div>
+      <h2>届いた依頼・連絡</h2>
+      <div id="log"><p class="muted">利用者の画面（<a href="index.html" target="_blank">別の窓で開く</a>）で集荷を頼んだり、不在を伝えたりすると、ここに届きます。</p></div>
+      <h2>便</h2>
+      <div id="trucks"></div>
+      <p class="muted">終了見込みが予定より遅いのは集荷を受けたため、早いのは不在の家に寄らずに済んだためです。</p>
+      <button id="restart" class="sub">デモを最初からやりなおす</button>
+    </div>
+  </section>
+
+  <section id="mapWrap">
+    <div id="map"></div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script type="module" src="src/carrier-app.js"></script>
+</body>
+</html>

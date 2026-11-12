@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>にもつ停留所 — 宅配トラックを路線バスのように</title>
+<meta name="description" content="宅配トラックを路線バス／デマンド交通に見立て、配達ルートを GTFS-Flex で表すデモ（公共交通オープンデータチャレンジ2026）">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>にもつ停留所 <small>宅配トラックを路線バスのように</small></h1>
+  <div class="clock">
+    <span id="clock">--:--</span>
+    <span class="speed" role="group" aria-label="デモの速さ">
+      <button data-speed="1">1倍</button><button data-speed="10">10倍</button><button data-speed="30" class="on">30倍</button><button data-speed="60">60倍</button>
+    </span>
+  </div>
+</header>
+
+<main>
+  <section id="panel">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="public" class="on">公開地図</button>
+      <button role="tab" data-tab="pickup">集荷お願い</button>
+      <button role="tab" data-tab="mine">わたしの荷物</button>
+    </nav>
+
+    <div class="tab on" id="tab-public">
+      <p class="lead">トラックを<b>路線バス</b>、街区を<b>停留所</b>に見立てた地図です。だれでも見られます。</p>
+      <ul class="legend">
+        <li><i class="sw next"></i>次に寄る停留所（街区）</li>
+        <li><i class="sw up"></i>これから寄る停留所（濃いほど近い）</li>
+        <li><i class="sw done"></i>寄り終えた停留所</li>
+        <li><i class="sw truck"></i>トラック（街区単位・3分遅れ）</li>
+      </ul>
+      <label class="toggle muted"><input type="checkbox" id="showBuses"> 参考: 都営バスの実際の位置も出す（緑の点。宅配とは関係ありません）</label>
+      <p class="muted" id="pubInfo"></p>
+      <div id="truckList"></div>
+      <details class="rules">
+        <summary>公開地図の決まり（プライバシー）</summary>
+        <ul>
+          <li>停留所は家ではなく<b>街区</b>。家の位置は出しません</li>
+          <li><b>配達か集荷かを区別しません</b>（乗降区分は全部「要予約」）</li>
+          <li>荷物が1件だけの街区は、隣の街区とまとめます</li>
+          <li>地図は<b>3分ごとにまとめて</b>更新します（集荷を頼んだ直後には変わりません）</li>
+          <li>トラックの位置は街区単位に粗くし、3分遅らせます。停車中は表示を止めます</li>
+        </ul>
+      </details>
+      <details class="rules">
+        <summary>公開データ（GTFS-Flex / GTFS-RT）</summary>
+        <p>静的データ: <a href="gtfs/stop_times.txt" target="_blank">stop_times.txt</a> ・ <a href="gtfs/locations.geojson" target="_blank">locations.geojson</a> ・ <a href="gtfs/trips.txt" target="_blank">trips.txt</a> ・ <a href="gtfs/booking_rules.txt" target="_blank">booking_rules.txt</a></p>
+        <button id="showRt" class="sub">いまの GTFS-RT 相当を見る</button>
+        <pre id="rtView" hidden></pre>
+      </details>
+      <p class="demo-link">これは<b>利用者のアプリ</b>です。デモの説明用に、<a href="carrier.html" target="_blank">業者の画面（サンプル）</a>を別の窓で開けます。並べると、ここでの集荷の依頼や不在の連絡がすぐ届きます。業者の画面は、各社がすでに持っている業務システムの代わりに作ったサンプルです。</p>
+    </div>
+
+    <div class="tab" id="tab-pickup">
+      <p class="lead">近くを走っているトラックに、<b>家まで集荷</b>に寄ってもらいます。</p>
+      <ol class="steps">
+        <li>
+          <b>登録住所</b>
+          <div id="homeText" class="muted">まだ決まっていません</div>
+          <button id="pickHome" class="sub">地図で家の場所を選ぶ</button>
+        </li>
+        <li>
+          <b>荷物のサイズ</b>
+          <div class="sizes" role="radiogroup">
+            <label><input type="radio" name="size" value="60" checked>60</label>
+            <label><input type="radio" name="size" value="80">80</label>
+            <label><input type="radio" name="size" value="100">100</label>
+            <label><input type="radio" name="size" value="120">120</label>
+          </div>
+        </li>
+        <li>
+          <b>近くのトラック</b>
+          <div id="nearTruck" class="muted">家の場所を選ぶと出ます</div>
+        </li>
+      </ol>
+      <button id="askPickup" class="main" disabled>集荷お願い</button>
+      <div id="pickupResult"></div>
+    </div>
+
+    <div class="tab" id="tab-mine">
+      <p class="lead">宅配会社から届く<b>お届けQR</b>を読むと、到着の目安を計算します。<span class="muted">QR には便と停留所（街区）と合言葉だけが入っていて、住所は入っていません。アプリは宅配会社に問い合わせず、ODPT の公開データだけで計算します。</span></p>
+      <form id="trackForm" class="row">
+        <input id="trackNo" placeholder="お届けQR の中身（nimotsu:v1?…）を貼りつけ" autocomplete="off">
+        <button class="sub">読む</button>
+      </form>
+      <button id="demoParcel" class="sub">デモ: 宅配会社からお届けQR がメールで届く</button>
+      <div id="myList"></div>
+    </div>
+
+  </section>
+
+  <section id="mapWrap">
+    <div id="map"></div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version
+にもつ停留所,https://github.com/tyra0119/ParcelTransit,ja,20261112,20261112,20261112-demo

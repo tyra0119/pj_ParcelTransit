@@ -1,0 +1,2 @@
+booking_rule_id,booking_type,prior_notice_duration_min,message
+pickup,1,20,集荷は「集荷お願い」から依頼。便の終了20分前まで受付
