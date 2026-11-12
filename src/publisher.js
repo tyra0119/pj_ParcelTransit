@@ -72,6 +72,7 @@ export class Publisher {
       return {
         id: truck.id,
         name: truck.name,
+        company: truck.company, // どの会社の便か（公開してよい）
         tripId: truck.tripId,
         position: shown.atDepot ? null : { lat: shown.lat, lon: shown.lon, blockId: shown.blockId },
         positionAsOf: asOf - PUBLISH.delay,

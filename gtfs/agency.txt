@@ -1,2 +1,3 @@
 agency_id,agency_name,agency_url,agency_timezone,agency_lang
-nimotsu,にもつ停留所（模擬の宅配便）,https://github.com/tyra0119/ParcelTransit,Asia/Tokyo,ja
+A,A社（架空の宅配会社）,https://tyra0119.github.io/pj_ParcelTransit/,Asia/Tokyo,ja
+B,B社（架空の宅配会社）,https://tyra0119.github.io/pj_ParcelTransit/,Asia/Tokyo,ja

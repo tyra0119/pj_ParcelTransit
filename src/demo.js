@@ -5,7 +5,7 @@
 // を localStorage に置いて BroadcastChannel で知らせ合う。模擬は決定的なので、同じ記録から同じ状態になる。
 import { DemoServer } from './api.js';
 
-const KEY = 'nimotsu-demo-v3';
+const KEY = 'nimotsu-demo-v4';
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel(KEY) : null;
 
 function load() {
@@ -43,7 +43,10 @@ export class SharedDemo {
     for (; this.applied < acts.length; this.applied++) {
       const a = acts[this.applied];
       this.server.tick(a.t);
-      const result = a.type === 'pickup' ? this.server.requestPickup(a.args, a.t) : this.server.absent(a.args.qr, a.t);
+      const result = a.type === 'pickup' ? this.server.requestPickup(a.args, a.t)
+        : a.type === 'redeliver' ? this.server.redeliver(a.args, a.t)
+        : a.type === 'away' ? this.server.away(a.args.qr, a.t)
+        : this.server.absent(a.args.qr, a.t);
       this.log.push({ ...a, result });
     }
   }
@@ -91,7 +94,9 @@ export class SharedDemo {
   realtime() { return this.server.realtime(this.now()); }
   requestPickup(args) { return this.#act('pickup', args); }
   absent(qr) { return this.#act('absent', { qr }); }
-  mail(key) { return this.server.mail(key); }
+  redeliver(args) { return this.#act('redeliver', args); }
+  away(qr) { return this.#act('away', { qr }); }
+  mail(key) { return this.server.mail(key, this.now()); }
   sampleParcel() { return this.server.sampleParcel(this.now()); }
   carrierView() { return this.server.carrierView(this.now()); }
 }

@@ -53,10 +53,19 @@ function renderLog() {
     if (a.type === 'pickup') {
       const b = area.block(a.args.blockId);
       const r = a.result;
-      return `<div class="card ${r.ok ? 'ok' : 'ng'}"><div class="no">${hhmm(a.t)} 集荷の依頼</div>
+      return `<div class="card ${r.ok ? 'ok' : 'ng'}"><div class="no">${hhmm(a.t)} 集荷の依頼（${a.args.company ? `${a.args.company}社を指定` : '会社の指定なし'}）</div>
         <b>${esc(b.label)}</b>（${a.args.size}サイズ）<br>
-        ${r.ok ? `受付 → ${r.truckId} 便に差し込み。走行が ${fmtMin(r.extraMs)} 延びる<br>伝えた時間幅 ${windowText(r.window)}`
+        ${r.ok ? `${r.company}社が受付 → ${r.truckId} 便に差し込み。走行が ${fmtMin(r.extraMs)} 延びる<br>伝えた時間幅 ${windowText(r.window)}`
                : `お断り: ${esc(r.reason)}`}</div>`;
+    }
+    if (a.type === 'away') {
+      return `<div class="card"><div class="no">${hhmm(a.t)} （デモ）留守だったことにする</div>
+        ${a.result?.ok ? 'トラックは寄るが渡せず、持ち戻る。持ち戻ったら、不在票の代わりに再配達の QR をお知らせで送る' : esc(a.result?.reason ?? '')}</div>`;
+    }
+    if (a.type === 'redeliver') {
+      const r = a.result;
+      return `<div class="card ${r?.ok ? 'ok' : 'ng'}"><div class="no">${hhmm(a.t)} 再配達の依頼（${esc(a.args.truckId)} 便を指定）</div>
+        ${r?.ok ? `${r.company}社が受付 → ${r.truckId} 便に差し込み。伝えた時間幅 ${windowText(r.window)}。新しいお届けQR を返した` : `受けなかった: ${esc(r?.reason ?? '')}`}</div>`;
     }
     return `<div class="card"><div class="no">${hhmm(a.t)} 不在の連絡</div>
       ${a.result?.ok ? '受付（お届けQR の合言葉で確認）→ この便では寄らず、次の便へ回す。次の便のお届けQR をお知らせで送る' : `受けなかった: ${esc(a.result?.reason ?? '')}`}</div>`;
@@ -69,10 +78,11 @@ function renderCarrier(v) {
     <div><small>集荷で延びた走行</small><b>${fmtMin(v.stats.extraMs)}</b><small>別便を出さずに済んだ</small></div>
     <div><small>不在の事前連絡</small><b>${v.stats.absentAvoided} 件</b><small>持ち戻りを防いだ</small></div>
     <div><small>不在で短くなった</small><b>${fmtMin(v.stats.savedMs)}</b><small>寄らずに済んだ時間</small></div>
+    <div><small>再配達の依頼</small><b>${v.stats.redelivered} 件</b><small>空いている便に差し込んだ</small></div>
   </div>`;
-  $('#trucks').innerHTML = `<table><tr><th>便</th><th>残り</th><th>終了見込み</th><th>予定</th></tr>${v.trucks.map((t) => {
+  $('#trucks').innerHTML = `<table><tr><th>会社・便</th><th>残り</th><th>終了見込み</th><th>予定</th></tr>${v.trucks.map((t) => {
     const diff = t.end - t.plannedEnd;
-    return `<tr><td><i class="dot" style="background:${COLORS[t.id]}"></i> ${t.tripId}</td><td>${t.remaining}/${t.stops}</td>
+    return `<tr><td><i class="dot" style="background:${COLORS[t.id]}"></i> ${t.company}社 ${t.tripId}</td><td>${t.remaining}/${t.stops}</td>
       <td>${hhmm(t.end)}${Math.abs(diff) >= 30e3 ? ` <small style="color:${diff > 0 ? '#c5221f' : '#137333'}">${diff > 0 ? '+' : '−'}${fmtMin(Math.abs(diff))}</small>` : ''}</td><td>${hhmm(t.plannedEnd)}</td></tr>`;
   }).join('')}</table>`;
   if (!ready) return;

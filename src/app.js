@@ -10,9 +10,9 @@ const demo = new SharedDemo(area);
 const drawClock = setupClock(demo);
 
 // 自分の荷物と登録住所は、このブラウザだけに置く
-const MINE_KEY = 'nimotsu-mine-v3';
+const MINE_KEY = 'nimotsu-mine-v4';
 const saved = (() => { try { return JSON.parse(localStorage.getItem(MINE_KEY)) ?? {}; } catch { return {}; } })();
-const mine = saved.mine ?? []; // { qr（お届けQR の中身）, label, kind: 'delivery' | 'pickup', absent }
+const mine = saved.mine ?? []; // { qr（お届けQR の中身）, label, kind: 'delivery' | 'pickup', absent, away }
 let home = saved.home ?? null;
 const save = () => localStorage.setItem(MINE_KEY, JSON.stringify({ mine, home }));
 
@@ -34,6 +34,9 @@ $$('.tabs button').forEach((b) => b.onclick = () => {
   $$('.tab').forEach((x) => x.classList.toggle('on', x.id === `tab-${b.dataset.tab}`));
 });
 const openTab = (name) => $(`.tabs button[data-tab="${name}"]`).click();
+$$('[data-open]').forEach((a) => a.onclick = (e) => { e.preventDefault(); openTab(a.dataset.open); });
+const CO_NAME = { A: 'A社', B: 'B社' };
+const coTag = (c) => (c ? `<span class="co ${c}">${CO_NAME[c]}</span>` : '');
 
 // ---- 地図のタップ ----
 function onTap(e) {
@@ -111,16 +114,25 @@ function setHome(block, lngLat) {
 }
 function renderNear() {
   if (!home || !snap) return;
-  const t = snap.trucks.find((x) => x.id === area.block(home.blockId).zone);
-  $('#nearTruck').innerHTML = `<span class="dot" style="background:${COLORS[t.id]}"></span> ${esc(t.name)}：${t.pickup.accepting
-    ? `<b style="color:#137333">集荷受付中</b>（締切 ${hhmm(t.pickup.deadline)}）` : '<b>受付終了</b>（次の便が出たら受け付けます）'}`;
+  // 会社ごとに、家にいちばん近い便（公開データの位置）の受付の状態
+  const b = area.block(home.blockId);
+  const near = (c) => snap.trucks.filter((x) => x.company === c)
+    .map((x) => ({ x, d: x.position ? Math.hypot(x.position.lat - b.lat, x.position.lon - b.lon) : 9 }))
+    .sort((p, q) => p.d - q.d)[0]?.x;
+  $('#nearTruck').innerHTML = ['A', 'B'].map((c) => {
+    const t = near(c);
+    if (!t) return '';
+    return `<div>${coTag(c)}<span class="dot" style="background:${COLORS[t.id]}"></span> ${esc(t.name.replace(/^[AB]社 /, ''))}：${t.pickup.accepting
+      ? `<b style="color:#137333">集荷受付中</b>（締切 ${hhmm(t.pickup.deadline)}）` : '<b>受付終了</b>'}</div>`;
+  }).join('');
   $('#askPickup').disabled = pickupSent !== null;
 }
-$$('input[name=size]').forEach((x) => x.onchange = () => { pickupSent = null; renderNear(); });
+$$('input[name=size], input[name=company]').forEach((x) => x.onchange = () => { pickupSent = null; renderNear(); });
 $('#askPickup').onclick = () => {
   if (!home || pickupSent) return;
   const size = Number(document.querySelector('input[name=size]:checked').value);
-  const r = demo.requestPickup({ blockId: home.blockId, lat: home.lat, lon: home.lon, size });
+  const company = document.querySelector('input[name=company]:checked').value || undefined;
+  const r = demo.requestPickup({ blockId: home.blockId, lat: home.lat, lon: home.lon, size, company });
   const box = $('#pickupResult');
   if (!r.ok) {
     box.innerHTML = `<div class="card ng"><b>今回はお受けできません</b><br>${esc(r.reason)}。<br><span class="muted">次の便が出たらもう一度お試しください。</span></div>`;
@@ -131,9 +143,10 @@ $('#askPickup').onclick = () => {
   addMine(r.qr, `集荷 ${size}サイズ`, 'pickup');
   box.innerHTML = `<div class="card ok">
     <div class="qr">${qr(r.qr)}</div>
-    <b>集荷をお受けしました</b>
+    <b>${coTag(r.company)}集荷をお受けしました</b>
     <div class="big">${windowText(r.window)}</div>
     <div class="muted">ごろに伺います（${esc(snap.trucks.find((t) => t.id === r.truckId).name)}）</div>
+    <div class="muted">${r.chosen === 'auto' ? '会社を指定しなかったので、受付中の便から寄り道がいちばん小さい便をアプリが選びました。' : `${CO_NAME[r.company]}を指定しました。依頼は ${CO_NAME[r.company]}の申し込み先にだけ届きます。`}</div>
     <div class="muted">返ってきた QR を「わたしの荷物」に入れました。この QR と公開データから「あと○停留所」を計算します。<br>公開地図には次のまとめ更新（${hhmm(snap.nextUpdate)}）で、ほかの停留所と同じ見た目で入ります。</div>
   </div>`;
 };
@@ -158,9 +171,18 @@ function statusOf(m) {
 // 不在で次の便に回した荷物: 宅配会社から新しいお届けQR がお知らせ（メール）で届いたら、差しかえる
 function checkMail() {
   for (const m of mine) {
-    if (!m.absent) continue;
-    const next = demo.mail(parseQr(m.qr).key);
-    if (next && next !== m.qr) {
+    if (m.kind !== 'delivery') continue;
+    const q = parseQr(m.qr);
+    if (q.redeliver) continue;
+    const next = demo.mail(q.key);
+    if (!next || next === m.qr) continue;
+    if (parseQr(next).redeliver) {
+      // 留守で持ち戻った: 不在票の代わりに、再配達の QR が届く。前の QR の停留所（街区）は、便を並べる順に使う
+      const before = statusOf(m);
+      if (before.blockIds) m.near = area.center(before.blockIds);
+      m.qr = next; m.away = false; save();
+      toast('留守のため持ち戻りました。再配達の QR が届きました');
+    } else if (m.absent) {
       m.qr = next; m.absent = false; save();
       toast('宅配会社から、次の便のお届けQR が届きました');
     }
@@ -180,6 +202,23 @@ $('#demoParcel').onclick = () => {
   if (p.blockIds) map.flyTo({ center: area.center(p.blockIds), zoom: 15.5 });
 };
 $('#myList').addEventListener('click', (e) => {
+  const away = e.target.closest('[data-away]');
+  if (away) {
+    const m = mine.find((x) => x.qr === away.dataset.away);
+    const r = demo.away(m.qr);
+    if (r.ok) { m.away = true; save(); toast('留守にしました（デモ）。トラックは寄りますが、渡せないので持ち戻ります'); }
+    else toast(r.reason);
+    renderMine(); return;
+  }
+  const rd = e.target.closest('[data-redeliver]');
+  if (rd) {
+    const m = mine.find((x) => x.qr === rd.dataset.redeliver);
+    // 再配達の依頼は「書く」操作。会社の申し込み先へ、再配達の QR と選んだ便を送る
+    const r = demo.redeliver({ qr: m.qr, truckId: rd.dataset.truck });
+    if (r.ok) { m.qr = r.qr; save(); toast(`再配達をお受けしました（${windowText(r.window)}ごろ）`); }
+    else toast(r.reason);
+    renderMine(); markMine(); return;
+  }
   const b = e.target.closest('[data-absent]');
   if (!b) return;
   const m = mine.find((x) => x.qr === b.dataset.absent);
@@ -215,15 +254,25 @@ function renderMine() {
       card = document.createElement('div');
       card.className = 'card';
       card.dataset.qr = m.qr;
-      card.innerHTML = `<div class="qr">${qrSmall(m.qr)}</div><div class="no">${esc(m.label)}・便 ${esc(q.trip)}・停留所 ${esc(q.stop)}</div><div class="body"></div><div class="act"></div>`;
+      card.innerHTML = `<div class="qr">${qrSmall(m.qr)}</div><div class="no">${coTag(q.feed)}${esc(m.label)}・${q.redeliver ? '再配達の QR' : `便 ${esc(q.trip)}・停留所 ${esc(q.stop)}`}</div><div class="body"></div><div class="act"></div>`;
     }
     if (list.children[i] !== card) list.insertBefore(card, list.children[i] ?? null);
     const p = statusOf(m);
     let body, act = '';
-    if (m.absent) body = '<b>不在のご連絡を受けました</b><br><span class="muted">この便では伺わず、次の便に回します。次の便が決まると、新しいお届けQR が届きます。</span>';
+    if (p.status === 'redeliver') {
+      body = '<b>留守のため持ち戻りました</b><br><span class="muted">再配達の QR（不在票の代わり）が届きました。公開データで受付中の便から、受け取れる便を選んでください。</span>';
+      // 受付中の便を、前の停留所（街区）に近い順に並べる（公開データの位置で）
+      const dist = (t) => (m.near && t.position ? Math.hypot(t.position.lon - m.near[0], t.position.lat - m.near[1]) : 9);
+      const opts = snap ? snap.trucks.filter((t) => t.company === p.company && t.pickup.accepting).sort((a, b) => dist(a) - dist(b)) : [];
+      act = opts.length
+        ? `<div class="redeliver-list">${opts.map((t, i) => `<button class="sub" data-redeliver="${esc(m.qr)}" data-truck="${t.id}">${i === 0 && m.near ? 'いちばん近い: ' : ''}${esc(t.name)}（受付 〜${hhmm(t.pickup.deadline)}）に頼む</button>`).join('')}</div>`
+        : '<span class="muted">いま受付中の便がありません。次の便が出たら選べます</span>';
+    } else if (m.absent) body = '<b>不在のご連絡を受けました</b><br><span class="muted">この便では伺わず、次の便に回します。次の便が決まると、新しいお届けQR が届きます。</span>';
+    else if (m.away && (p.status === 'onway' || p.status === 'arriving')) body = `<b>留守にしています（デモ）</b><br><span class="muted">あと ${p.stopsAway ?? 1} 停留所。トラックは寄りますが、渡せないので持ち戻ります。</span>`;
     else if (p.status === 'passed' || p.status === 'ended') body = `<b>${m.kind === 'pickup' ? '集荷しました' : 'お届けしました'}</b>`;
     else if (p.status === 'expired') body = '<b>QR の期限が切れています</b>';
     else if (p.status === 'unknown') body = '<span class="muted">公開データにこの便が見つかりません</span>';
+    else if (p.status === 'pending') body = `<b>受け付けました</b><br><span class="muted">${esc(p.truckName)}に入りました。公開データには次のまとめ更新（${hhmm(p.nextUpdate)}）で出るので、そのあと「あと○停留所」を計算します。</span>`;
     else if (p.status === 'arriving') body = `<div class="away">まもなく</div><span class="muted">次がこの停留所です（${esc(p.stopName)}）</span>`;
     else {
       const n = Math.min(p.stopsAway, 20);
@@ -231,7 +280,7 @@ function renderMine() {
       body = `<div>あと <span class="away">${p.stopsAway}</span> 停留所</div>
         <div class="dots"><i class="truck"></i>${dots}</div>
         <div class="big">${windowText(p.window)}</div><div class="muted">ごろ（${esc(p.truckName)}）</div>`;
-      if (m.kind === 'delivery' && p.stopsAway > 2) act = `<button class="sub" data-absent="${esc(m.qr)}">この時間は不在にする</button>`;
+      if (m.kind === 'delivery' && p.stopsAway > 2) act = `<button class="sub" data-absent="${esc(m.qr)}">この時間は不在にする</button> <button class="sub" data-away="${esc(m.qr)}" title="体験用。伝えずに留守だった場合">デモ: 留守だったことにする</button>`;
     }
     if (p.asOf && !m.absent && (p.status === 'onway' || p.status === 'arriving')) body += `<div class="muted" style="font-size:11px;margin-top:4px">QR と公開データ（${hhmm(p.asOf)} 時点）から計算。宅配会社には問い合わせていません</div>`;
     const b = card.querySelector('.body'), a = card.querySelector('.act');

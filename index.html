@@ -28,6 +28,16 @@
     </nav>
 
     <div class="tab on" id="tab-public">
+      <details class="guide" open>
+        <summary>体験してみる（4 つの流れ）</summary>
+        <ol>
+          <li><b>配達</b>: <a href="#" data-open="mine">わたしの荷物</a>で「デモ: お届けQR がメールで届く」→ QR と公開データから「あと○停留所」を計算</li>
+          <li><b>不在</b>: 荷物のカードで「この時間は不在にする」→ その便では寄らず、便が終わると次の便の QR が届く</li>
+          <li><b>再配達</b>: 荷物のカードで「デモ: 留守だったことにする」→ トラックが寄って持ち戻ると再配達の QR が届く → 受け取れる便を選ぶ</li>
+          <li><b>集荷</b>: <a href="#" data-open="pickup">集荷お願い</a>で家・サイズ・会社（A社／B社／指定しない）を選んで頼む</li>
+        </ol>
+        <p class="muted">右上の速さを 60倍 にすると早く進みます。<a href="carrier.html" target="_blank">業者の画面（サンプル）</a>を並べると、依頼や連絡が届く様子が見えます。宅配会社の A社・B社はどちらも架空です。</p>
+      </details>
       <p class="lead">トラックを<b>路線バス</b>、街区を<b>停留所</b>に見立てた地図です。だれでも見られます。</p>
       <ul class="legend">
         <li><i class="sw next"></i>次に寄る停留所（街区）</li>
@@ -75,7 +85,16 @@
           </div>
         </li>
         <li>
-          <b>近くのトラック</b>
+          <b>宅配会社</b>
+          <div class="sizes" role="radiogroup">
+            <label><input type="radio" name="company" value="" checked>指定しない</label>
+            <label><input type="radio" name="company" value="A">A社</label>
+            <label><input type="radio" name="company" value="B">B社</label>
+          </div>
+          <div class="muted" style="font-size:12px">指定しないと、受付中の便から寄り道がいちばん小さい便をアプリが選びます</div>
+        </li>
+        <li>
+          <b>近くの便（公開データ）</b>
           <div id="nearTruck" class="muted">家の場所を選ぶと出ます</div>
         </li>
       </ol>

@@ -19,6 +19,9 @@ export const RULES = {
   restBetweenTrips: 10 * MIN,
 };
 export const SIZE_UNITS = { 60: 1, 80: 2, 100: 3, 120: 5 };
+// 宅配会社（どちらも架空）。隣り合う受け持ちが別の会社になるように分ける
+export const COMPANIES = { A: { id: 'A', name: 'A社' }, B: { id: 'B', name: 'B社' } };
+export const ZONE_COMPANY = { K1: 'A', K2: 'B', K3: 'A', O1: 'B', O2: 'A', O3: 'B' };
 const SIZES = [60, 60, 60, 80, 80, 100, 120];
 
 export class Carrier {
@@ -30,11 +33,13 @@ export class Carrier {
     this.reqRand = rng(seed * 7919 + 1);
     this.blocks = new Map(area.blocks.map((b) => [b.id, b]));
     this.finished = new Set();
-    this.stats = { pickupsAccepted: 0, pickupsDeclined: 0, extraMs: 0, absentAvoided: 0, savedMs: 0 };
+    this.stats = { pickupsAccepted: 0, pickupsDeclined: 0, extraMs: 0, absentAvoided: 0, savedMs: 0, missed: 0, redelivered: 0 };
+    this.held = new Map();    // 合言葉 → 持ち戻った荷物（便が終わったあと、再配達の依頼を待つもの）
     this.mailbox = new Map(); // 合言葉 → 新しいお届けQR（メールで届ける代わり）
     this.carry = new Map();   // 便 → 次の便に回す荷物（不在を先に伝えたもの）
     this.trucks = area.zones.map((z, i) => {
-      const truck = { id: z.id, name: z.name, idx: i, tripNo: 0 };
+      const company = ZONE_COMPANY[z.id] ?? 'A';
+      const truck = { id: z.id, name: `${COMPANIES[company].name} ${z.name}`, company, idx: i, tripNo: 0 };
       this.#newTrip(truck, now);
       // デモでは便の進み具合をずらして始める
       if (warm) this.#shift(truck, -(0.08 + 0.1 * i) * (truck.end - truck.start));
@@ -207,7 +212,10 @@ export class Carrier {
       while (now > truck.end + RULES.restBetweenTrips) {
         const absent = [...truck.items.values()].filter((it) => it.absent);
         if (absent.length) this.carry.set(truck.id, absent);
-        for (const it of truck.items.values()) if (!it.absent) this.finished.add(it.no);
+        for (const it of truck.items.values()) {
+          if (it.away) { this.held.set(it.key, { item: it, company: truck.company }); continue; }
+          if (!it.absent) this.finished.add(it.no);
+        }
         this.#newTrip(truck, truck.end + RULES.restBetweenTrips);
       }
     }
@@ -252,63 +260,129 @@ export class Carrier {
     return units;
   }
 
+  // ---- 便に寄り道を足せるか（集荷・再配達で使う）----
+  #plan(truck, blockId, size, t, reasons) {
+    const block = this.blocks.get(blockId);
+    if (!this.acceptance(truck, t).accepting) { reasons.add('受付を締め切っています'); return null; }
+    if (this.#load(truck, t) + SIZE_UNITS[size] > RULES.capacity) { reasons.add('荷台に余裕がありません'); return null; }
+    const k = this.nextIndex(truck, t);
+    const stops = truck.stops, depot = this.area.depot;
+    let plan = null;
+    const existing = stops.findIndex((st, i) => i >= k && st.blockIds.includes(blockId));
+    if (existing >= 0) {
+      plan = { truck, existing, extra: RULES.dwellPerItem };
+    } else {
+      const here = { lat: block.lat, lon: block.lon };
+      for (let q = k + 1; q <= stops.length; q++) {
+        if (q < stops.length && stops[q].skip) continue;
+        const from = this.#lastVisited(truck, q), to = q === stops.length ? depot : stops[q];
+        const extra = this.#travel(from, here) + this.#travel(here, to) - this.#travel(from, to) + RULES.dwellBase + RULES.dwellPerItem;
+        if (!plan || extra < plan.extra) plan = { truck, insertAt: q, extra };
+      }
+    }
+    if (!plan) { reasons.add('近くに便がありません'); return null; }
+    if (plan.extra > RULES.maxDetour) { reasons.add('寄り道が長くなりすぎます'); return null; }
+    if (truck.end + plan.extra > truck.plannedEnd + RULES.endSlack) { reasons.add('便の終了時刻に間に合いません'); return null; }
+    return plan;
+  }
+
+  #insert(plan, item) {
+    const truck = plan.truck, block = this.blocks.get(item.blockId);
+    truck.items.set(item.no, item);
+    const oldEnd = truck.end;
+    let stop;
+    if (plan.existing !== undefined) {
+      stop = truck.stops[plan.existing];
+      stop.itemNos.push(item.no);
+      this.#reschedule(truck, plan.existing);
+    } else {
+      // 1件だけの街区にならないよう、隣の街区とまとめて停留所にする
+      const used = new Set(truck.stops.flatMap((st) => st.blockIds).concat(block.id));
+      const zoneBlocks = this.area.blocks.filter((b) => b.zone === block.zone);
+      const near = this.#nearestBlock(block, zoneBlocks, used);
+      truck.stopSerial += 1;
+      stop = this.#makeStop(truck, { blockIds: near ? [block.id, near.id] : [block.id], itemNos: [item.no] }, truck.stopSerial - 1);
+      stop.lat = block.lat; stop.lon = block.lon;
+      truck.stops.splice(plan.insertAt, 0, stop);
+      this.#reschedule(truck, plan.insertAt);
+    }
+    return { stop, extraMs: truck.end - oldEnd };
+  }
+
   // ---- 集荷の依頼 ----
-  // 寄り道時間・荷台の余裕・便の終了時刻から可否を決め、到着予想の時間幅を返す
-  requestPickup({ blockId, lat, lon, size }, t) {
+  // company: 'A' / 'B'（業者指定）か、無し（未指定: 寄り道がいちばん小さい便を選ぶ）
+  requestPickup({ blockId, lat, lon, size, company }, t) {
     const block = this.blocks.get(blockId);
     const reasons = new Set();
     let best = null;
     for (const truck of this.trucks) {
-      if (!this.acceptance(truck, t).accepting) { reasons.add('近くの便は集荷の受付を締め切っています'); continue; }
-      if (this.#load(truck, t) + SIZE_UNITS[size] > RULES.capacity) { reasons.add('荷台に余裕がありません'); continue; }
-      const k = this.nextIndex(truck, t);
-      const stops = truck.stops, depot = this.area.depot;
-      let plan = null;
-      const existing = stops.findIndex((s, i) => i >= k && s.blockIds.includes(blockId));
-      if (existing >= 0) {
-        plan = { truck, existing, extra: RULES.dwellPerItem };
-      } else {
-        const here = { lat: block.lat, lon: block.lon };
-        for (let p = k + 1; p <= stops.length; p++) {
-          if (p < stops.length && stops[p].skip) continue;
-          const a = this.#lastVisited(truck, p), b = p === stops.length ? depot : stops[p];
-          const extra = this.#travel(a, here) + this.#travel(here, b) - this.#travel(a, b) + RULES.dwellBase + RULES.dwellPerItem;
-          if (!plan || extra < plan.extra) plan = { truck, insertAt: p, extra };
-        }
-      }
-      if (!plan) continue;
-      if (plan.extra > RULES.maxDetour) { reasons.add('寄り道が長くなりすぎます'); continue; }
-      if (truck.end + plan.extra > truck.plannedEnd + RULES.endSlack) { reasons.add('便の終了時刻に間に合いません'); continue; }
-      if (!best || plan.extra < best.extra) best = plan;
+      if (company && truck.company !== company) continue;
+      const plan = this.#plan(truck, blockId, size, t, reasons);
+      if (plan && (!best || plan.extra < best.extra)) best = plan;
     }
     if (!best) {
       this.stats.pickupsDeclined += 1;
-      return { ok: false, reason: [...reasons][0] || '近くに便がありません' };
+      const who = company ? `${COMPANIES[company].name}の便は` : '';
+      return { ok: false, reason: who + ([...reasons][0] || '近くに便がありません') };
     }
-    const truck = best.truck;
     const item = this.#makeItem(block, 'pickup', size, this.reqRand);
     item.lat = lat; item.lon = lon; item.requested = true;
-    truck.items.set(item.no, item);
-    const oldEnd = truck.end;
-    let stop;
-    if (best.existing !== undefined) {
-      stop = truck.stops[best.existing];
-      stop.itemNos.push(item.no);
-      this.#reschedule(truck, best.existing);
-    } else {
-      // 1件だけの街区にならないよう、隣の街区とまとめて停留所にする
-      const used = new Set(truck.stops.flatMap((s) => s.blockIds).concat(blockId));
-      const zoneBlocks = this.area.blocks.filter((b) => b.zone === block.zone);
-      const near = this.#nearestBlock(block, zoneBlocks, used);
-      truck.stopSerial += 1;
-      stop = this.#makeStop(truck, { blockIds: near ? [blockId, near.id] : [blockId], itemNos: [item.no] }, truck.stopSerial - 1);
-      stop.lat = block.lat; stop.lon = block.lon;
-      truck.stops.splice(best.insertAt, 0, stop);
-      this.#reschedule(truck, best.insertAt);
-    }
+    const { stop, extraMs } = this.#insert(best, item);
     this.stats.pickupsAccepted += 1;
-    this.stats.extraMs += truck.end - oldEnd;
-    return { ok: true, trackingNo: item.no, truckId: truck.id, window: this.#window(stop.arrive, t), extraMs: truck.end - oldEnd, qr: this.qrOf(item.no) };
+    this.stats.extraMs += extraMs;
+    return {
+      ok: true, trackingNo: item.no, truckId: best.truck.id, company: best.truck.company, chosen: company ? 'specified' : 'auto',
+      window: this.#window(stop.arrive, t), extraMs, qr: this.qrOf(item.no),
+    };
+  }
+
+  // ---- 留守（デモ用）と再配達 ----
+  // デモ用: 本人が「その時間は留守だった」ことにする。トラックは寄るが渡せず、持ち戻る
+  markAway(qr, t) {
+    const it = this.#byKey(this.#keyOf(qr));
+    if (!it || it.type !== 'delivery') return { ok: false, reason: 'お届けの荷物ではありません' };
+    if (this.#missed(it, t)) return { ok: false, reason: 'もう持ち戻っています' };
+    const hit = this.#find(it.no);
+    if (!hit || hit.truck.stops[hit.index].depart <= t) return { ok: false, reason: 'もう届いています' };
+    it.away = true;
+    return { ok: true };
+  }
+
+  #keyOf(qr) { return new URLSearchParams(String(qr).split('?')[1] ?? '').get('k'); }
+
+  // 留守で持ち戻ったか（寄った停留所を出た後か、便が終わって預かっているか）
+  #missed(it, t) {
+    if (!it.away) return false;
+    if (this.held.has(it.key)) return true;
+    const hit = this.#find(it.no);
+    return !!hit && hit.truck.stops[hit.index].depart <= t;
+  }
+
+  #companyOf(it) {
+    const h = this.held.get(it.key);
+    if (h) return h.company;
+    const hit = this.#find(it.no);
+    return hit ? hit.truck.company : null;
+  }
+
+  // 申し込み先（書く）: 再配達の依頼。持ち戻った会社の、本人が選んだ便に差し込む
+  requestRedelivery({ qr, truckId }, t) {
+    const it = this.#byKey(this.#keyOf(qr));
+    if (!it || !this.#missed(it, t)) return { ok: false, reason: '再配達の QR が正しくありません' };
+    const company = this.#companyOf(it);
+    const truck = this.trucks.find((x) => x.id === truckId);
+    if (!truck || truck.company !== company) return { ok: false, reason: `${COMPANIES[company].name}の便を選んでください` };
+    const reasons = new Set();
+    const plan = this.#plan(truck, it.blockId, it.size, t, reasons);
+    if (!plan) return { ok: false, reason: `この便は${[...reasons][0]}。ほかの便を選んでください` };
+    // 前の便からはずし、選んだ便に入れなおす
+    const old = this.#find(it.no);
+    if (old) { old.truck.items.delete(it.no); const st = old.truck.stops[old.index]; st.itemNos = st.itemNos.filter((n) => n !== it.no); }
+    this.held.delete(it.key);
+    it.away = false; it.redelivered = true;
+    const { stop } = this.#insert(plan, it);
+    this.stats.redelivered += 1;
+    return { ok: true, truckId: truck.id, company, window: this.#window(stop.arrive, t), qr: this.qrOf(it.no) };
   }
 
   // 到着予想の時間幅。遠い先ほど広く取る
@@ -365,13 +439,13 @@ export class Carrier {
     if (!hit) return null;
     const stop = hit.truck.stops[hit.index];
     const day = new Date(hit.truck.start + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
-    return `nimotsu:v1?f=demo&t=${hit.truck.tripId}&s=${stop.id}&e=${day}&k=${hit.item.key}`;
+    return `nimotsu:v1?f=${hit.truck.company}&t=${hit.truck.tripId}&s=${stop.id}&e=${day}&k=${hit.item.key}`;
   }
 
   #byKey(key) {
     for (const truck of this.trucks) for (const it of truck.items.values()) if (it.key === key) return it;
     for (const list of this.carry.values()) for (const it of list) if (it.key === key) return it;
-    return null;
+    return this.held.get(key)?.item ?? null;
   }
 
   // 申し込み先（書く）: QR の合言葉で、その荷物の持ち主と確かめてから受ける
@@ -385,7 +459,14 @@ export class Carrier {
   }
 
   // お知らせ（メールの代わり）: 不在で次の便に回したときの、新しいお届けQR
-  mail(key) { return this.mailbox.get(key) ?? null; }
+  mail(key, t) {
+    const it = this.#byKey(key);
+    if (it && this.#missed(it, t)) {
+      const day = new Date(t + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, '');
+      return `nimotsu:v1?f=${this.#companyOf(it)}&r=1&e=${day}&k=${key}`;
+    }
+    return this.mailbox.get(key) ?? null;
+  }
 
   // デモ用: まだ届いていない配達の追跡番号を1つ選ぶ
   sampleTrackingNo(t) {
