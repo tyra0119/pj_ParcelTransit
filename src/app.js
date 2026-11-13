@@ -3,14 +3,14 @@
 import { SharedDemo } from './demo.js';
 import { parseQr, personalFromPublic } from './personal.js';
 import { hhmm, windowText } from './util.js';
-import { COLORS, $, $$, esc, loadArea, toast, setupClock, createMap, addBaseLayers, startBuses, busPopup, PublicLayer } from './mapbase.js';
+import { AREA_ID, COLORS, $, $$, esc, loadArea, toast, setupClock, createMap, addBaseLayers, startBuses, busPopup, PublicLayer } from './mapbase.js';
 
 const area = await loadArea();
 const demo = new SharedDemo(area);
 const drawClock = setupClock(demo);
 
 // 自分の荷物と登録住所は、このブラウザだけに置く
-const MINE_KEY = 'nimotsu-mine-v4';
+const MINE_KEY = `nimotsu-mine-v4${AREA_ID === 'koto' ? '' : `-${AREA_ID}`}`;
 const saved = (() => { try { return JSON.parse(localStorage.getItem(MINE_KEY)) ?? {}; } catch { return {}; } })();
 const mine = saved.mine ?? []; // { qr（お届けQR の中身）, label, kind: 'delivery' | 'pickup', absent, away }
 let home = saved.home ?? null;
@@ -96,7 +96,7 @@ function pickHomeAt(e) {
   picking = false;
   $('#mapWrap').classList.remove('picking');
   $('#pickHome').classList.remove('on');
-  if (d > 250) { toast('デモのエリア（亀戸・大島1〜9丁目）の中を選んでください'); return; }
+  if (d > 250) { toast(`デモのエリア（${area.name}）の中を選んでください`); return; }
   setHome(block, e.lngLat);
 }
 let homeMarker, pickupSent = null; // 同じ住所・サイズで二度押ししない
@@ -104,7 +104,7 @@ function setHome(block, lngLat) {
   home = { blockId: block.id, lat: lngLat.lat, lon: lngLat.lng, label: block.label };
   save();
   pickupSent = null;
-  $('#homeText').textContent = `江東区${block.chome} ${block.no}番（街区 ${block.label}）`;
+  $('#homeText').textContent = `${area.ward}${block.chome} ${block.no}番（街区 ${block.label}）`;
   if (!homeMarker) {
     const el = document.createElement('div'); el.className = 'home-mk'; el.textContent = '🏠';
     homeMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' });

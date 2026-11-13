@@ -38,7 +38,7 @@ export class Carrier {
     this.mailbox = new Map(); // 合言葉 → 新しいお届けQR（メールで届ける代わり）
     this.carry = new Map();   // 便 → 次の便に回す荷物（不在を先に伝えたもの）
     this.trucks = area.zones.map((z, i) => {
-      const company = ZONE_COMPANY[z.id] ?? 'A';
+      const company = z.company ?? ZONE_COMPANY[z.id] ?? 'A';
       const truck = { id: z.id, name: `${COMPANIES[company].name} ${z.name}`, company, idx: i, tripNo: 0 };
       this.#newTrip(truck, now);
       // デモでは便の進み具合をずらして始める

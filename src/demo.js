@@ -4,8 +4,9 @@
 //  - 操作の記録（集荷の依頼・不在の連絡）
 // を localStorage に置いて BroadcastChannel で知らせ合う。模擬は決定的なので、同じ記録から同じ状態になる。
 import { DemoServer } from './api.js';
+import { AREA_ID } from './mapbase.js';
 
-const KEY = 'nimotsu-demo-v4';
+const KEY = `nimotsu-demo-v4${AREA_ID === 'koto' ? '' : `-${AREA_ID}`}`;
 const channel = 'BroadcastChannel' in window ? new BroadcastChannel(KEY) : null;
 
 function load() {

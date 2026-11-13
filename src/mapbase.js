@@ -2,7 +2,12 @@
 import { fetchToeiBuses, BUS_INTERVAL } from './buses.js';
 import { hhmm, dist } from './util.js';
 
-export const COLORS = { K1: '#1a73e8', K2: '#9334e6', K3: '#d01884', O1: '#188038', O2: '#e37400', O3: '#12b5cb' };
+export const COLORS = { K1: '#1a73e8', K2: '#9334e6', K3: '#d01884', O1: '#188038', O2: '#e37400', O3: '#12b5cb',
+  U1: '#1a73e8', U2: '#9334e6', W1: '#1a73e8', W2: '#9334e6' };
+// 地区: ?area=kozdai（神戸市北区 上津台）／ kozdai-wide（上津台・藤原台）。なければ亀戸・大島
+const AREAS = { kozdai: 'data/area-kozdai.json', 'kozdai-wide': 'data/area-kozdai-wide.json' };
+const askedArea = new URLSearchParams(location.search).get('area');
+export const AREA_ID = AREAS[askedArea] ? askedArea : 'koto';
 export const $ = (s) => document.querySelector(s);
 export const $$ = (s) => [...document.querySelectorAll(s)];
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -10,7 +15,10 @@ export const fc = (features) => ({ type: 'FeatureCollection', features });
 const ring = (poly) => (poly.length ? [...poly, poly[0]] : poly);
 
 export async function loadArea() {
-  const area = await (await fetch('data/area.json')).json();
+  const area = await (await fetch(AREAS[AREA_ID] ?? 'data/area.json')).json();
+  area.name = area.areaName ?? '亀戸・大島';
+  area.ward = (area.city ?? '東京都江東区').replace(/^.+?[都道府県]/, '').replace(/^神戸市/, '');
+  if (AREA_ID !== 'koto') showAreaNote(area);
   const lons = area.blocks.map((b) => b.lon), lats = area.blocks.map((b) => b.lat);
   area.bounds = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
   area.index = new Map(area.blocks.map((b, i) => [b.id, i]));
@@ -26,6 +34,20 @@ export async function loadArea() {
     return { block: best, d: bestD };
   };
   return area;
+}
+
+// ほかの地区で試しているときの案内。ページのあいだのリンクにも地区を引きつぐ
+function showAreaNote(area) {
+  for (const a of document.querySelectorAll('a[href^="index.html"], a[href^="carrier.html"]')) {
+    const [file, hash] = a.getAttribute('href').split('#');
+    a.setAttribute('href', `${file}?area=${AREA_ID}${hash ? `#${hash}` : ''}`);
+  }
+  // 静的フィード（gtfs/）は亀戸・大島の分なので、ほかの地区では出さない
+  for (const a of document.querySelectorAll('a[href^="gtfs/"]')) a.closest('p').hidden = true;
+  const el = document.createElement('div');
+  el.className = 'area-note';
+  el.innerHTML = `<b>${area.name}（${area.city}）で試しています。</b>街区と世帯数は実際のデータ、配達は模擬、営業所は架空です。 <a href="${location.pathname}">亀戸・大島に戻る</a>`;
+  document.querySelector('.top')?.after(el);
 }
 
 // ---- 知らせ ----
@@ -111,7 +133,7 @@ export function createMap(area, { focus = () => null, onTap = () => {} } = {}) {
     if (!navigator.geolocation) return fallback('現在地が使えません');
     navigator.geolocation.getCurrentPosition((p) => {
       const { longitude: lon, latitude: lat } = p.coords;
-      if (lon < B[0] - 0.01 || lon > B[2] + 0.01 || lat < B[1] - 0.01 || lat > B[3] + 0.01) return fallback('現在地がデモのエリア（亀戸・大島）の外です');
+      if (lon < B[0] - 0.01 || lon > B[2] + 0.01 || lat < B[1] - 0.01 || lat > B[3] + 0.01) return fallback(`現在地がデモのエリア（${area.name}）の外です`);
       map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 15.5) });
     }, () => fallback('現在地が取れませんでした'), { timeout: 8000 });
   };
@@ -176,6 +198,7 @@ export function addBaseLayers(map, area) {
 // 都営バス（ODPT・tyra.jp 中継経由、30 秒ごと）。宅配とは関係がないので、初めは出さない。
 // toggle（チェックボックス）を入れたときだけ取りにいき、表示する
 export function startBuses(map, area, toggle) {
+  if (AREA_ID !== 'koto') { const l = toggle?.closest('label'); if (l) l.hidden = true; return; }
   const B = area.bounds, pad = 0.01;
   let timer = null;
   const show = () => toggle?.checked ?? false;
