@@ -16,6 +16,7 @@ export const RULES = {
   endSlack: 20 * MIN,      // 便の終了予定からの遅れの上限
   pickupCutoff: 20 * MIN,  // 便の終了予定のこれだけ前に集荷受付を締め切る
   mergeRadius: 200,        // 1件だけの街区をまとめる相手を探す範囲（m）
+  minStopHouseholds: 100,  // 停留所の世帯の下限。郊外のように街区の世帯が少ない所で、荷物の届く先が絞れすぎないように
   restBetweenTrips: 10 * MIN,
 };
 export const SIZE_UNITS = { 60: 1, 80: 2, 100: 3, 120: 5 };
@@ -78,6 +79,7 @@ export class Carrier {
       if (g) g.itemNos.push(it.no); else groups.push({ blockIds: [it.blockId], itemNos: [it.no] });
     }
     groups = this.#mergeSingles(groups, zoneBlocks);
+    groups = this.#padHouseholds(groups, zoneBlocks);
     truck.stops = this.#order(groups.map((g, i) => this.#makeStop(truck, g, i)));
     truck.stopSerial = truck.stops.length;
     this.#reschedule(truck, 0);
@@ -122,6 +124,47 @@ export class Carrier {
         single.blockIds.push(near.id);
       }
     }
+  }
+
+  // プライバシーの決まり（郊外向け）: 停留所の世帯が下限に届くまでまとめる。
+  // 近くに荷物のある停留所があればそれと、なければ荷物のない隣の街区を足す
+  #households(blockIds) { return blockIds.reduce((n, id) => n + (this.blocks.get(id).hh ?? 0), 0); }
+
+  #padHouseholds(groups, zoneBlocks) {
+    const min = RULES.minStopHouseholds;
+    if (!min) return groups;
+    const done = new Set();
+    for (;;) {
+      const small = groups.filter((g) => !done.has(g) && this.#households(g.blockIds) < min)
+        .sort((a, b) => this.#households(a.blockIds) - this.#households(b.blockIds))[0];
+      if (!small) return groups;
+      const c = this.#center(small.blockIds);
+      let best = null, bestD = RULES.mergeRadius;
+      for (const g of groups) {
+        if (g === small) continue;
+        const d = dist(c, this.#center(g.blockIds));
+        if (d < bestD) { best = g; bestD = d; }
+      }
+      if (best) {
+        best.blockIds.push(...small.blockIds);
+        best.itemNos.push(...small.itemNos);
+        groups = groups.filter((g) => g !== small);
+        continue;
+      }
+      const used = new Set(groups.flatMap((g) => g.blockIds));
+      if (!this.#padBlocks(small.blockIds, zoneBlocks, used)) done.add(small);
+    }
+  }
+
+  // 荷物のない近くの街区を足して、世帯を下限まで増やす。足しきれなければ false
+  #padBlocks(blockIds, zoneBlocks, used) {
+    const min = RULES.minStopHouseholds;
+    while (this.#households(blockIds) < min) {
+      const near = this.#nearestBlock(this.#center(blockIds), zoneBlocks, new Set([...used, ...blockIds]));
+      if (!near) return false;
+      blockIds.push(near.id);
+    }
+    return true;
   }
 
   #nearestBlock(point, candidates, exclude) {
@@ -296,12 +339,14 @@ export class Carrier {
       stop.itemNos.push(item.no);
       this.#reschedule(truck, plan.existing);
     } else {
-      // 1件だけの街区にならないよう、隣の街区とまとめて停留所にする
+      // 1件だけの街区にならないよう、隣の街区とまとめて停留所にする（世帯が下限に届くまで足す）
       const used = new Set(truck.stops.flatMap((st) => st.blockIds).concat(block.id));
       const zoneBlocks = this.area.blocks.filter((b) => b.zone === block.zone);
       const near = this.#nearestBlock(block, zoneBlocks, used);
+      const blockIds = near ? [block.id, near.id] : [block.id];
+      this.#padBlocks(blockIds, zoneBlocks, used);
       truck.stopSerial += 1;
-      stop = this.#makeStop(truck, { blockIds: near ? [block.id, near.id] : [block.id], itemNos: [item.no] }, truck.stopSerial - 1);
+      stop = this.#makeStop(truck, { blockIds, itemNos: [item.no] }, truck.stopSerial - 1);
       stop.lat = block.lat; stop.lon = block.lon;
       truck.stops.splice(plan.insertAt, 0, stop);
       this.#reschedule(truck, plan.insertAt);
