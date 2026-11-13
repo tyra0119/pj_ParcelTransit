@@ -20,7 +20,7 @@ export class Publisher {
   #coarse(pos, zone) {
     let best = null, bestD = Infinity;
     for (const b of this.blocks) {
-      if (b.zone !== zone) continue;
+      if (!(b.zones ?? [b.zone]).includes(zone)) continue;
       const d = dist(pos, b);
       if (d < bestD) { best = b; bestD = d; }
     }

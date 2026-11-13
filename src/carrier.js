@@ -56,10 +56,12 @@ export class Carrier {
     truck.tripId = `${truck.id}-${truck.tripNo}`;
     truck.start = start;
     truck.items = new Map();
-    const zoneBlocks = this.area.blocks.filter((b) => b.zone === truck.id);
+    const zoneBlocks = this.#zoneBlocks(truck.id);
+    // 同じ町を何社かで受け持つ地区では、その会社に届く分（share）だけ
+    const share = this.area.zones.find((z) => z.id === truck.id)?.share ?? 1;
     let groups = [];
     for (const b of zoneBlocks) {
-      const n = poisson(rand, b.hh * R.ratePerHousehold);
+      const n = poisson(rand, b.hh * R.ratePerHousehold * share);
       if (!n) continue;
       const nos = [];
       for (let k = 0; k < n; k++) {
@@ -166,6 +168,9 @@ export class Carrier {
     }
     return true;
   }
+
+  // 便が受け持つ街区（重ねて受け持つ地区では block.zones）
+  #zoneBlocks(zoneId) { return this.area.blocks.filter((b) => (b.zones ?? [b.zone]).includes(zoneId)); }
 
   #nearestBlock(point, candidates, exclude) {
     let best = null, bestD = Infinity;
@@ -341,7 +346,9 @@ export class Carrier {
     } else {
       // 1件だけの街区にならないよう、隣の街区とまとめて停留所にする（世帯が下限に届くまで足す）
       const used = new Set(truck.stops.flatMap((st) => st.blockIds).concat(block.id));
-      const zoneBlocks = this.area.blocks.filter((b) => b.zone === block.zone);
+      // まとめる相手は、その街区と同じ受け持ちの街区から
+      const mine = block.zones ?? [block.zone];
+      const zoneBlocks = this.area.blocks.filter((b) => (b.zones ?? [b.zone]).some((z) => mine.includes(z)));
       const near = this.#nearestBlock(block, zoneBlocks, used);
       const blockIds = near ? [block.id, near.id] : [block.id];
       this.#padBlocks(blockIds, zoneBlocks, used);

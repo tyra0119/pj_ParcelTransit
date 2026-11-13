@@ -4,8 +4,8 @@ import { hhmm, dist } from './util.js';
 
 export const COLORS = { K1: '#1a73e8', K2: '#9334e6', K3: '#d01884', O1: '#188038', O2: '#e37400', O3: '#12b5cb',
   U1: '#1a73e8', U2: '#9334e6', W1: '#1a73e8', W2: '#9334e6' };
-// 地区: ?area=kozdai（神戸市北区 上津台）／ kozdai-wide（上津台・藤原台）。なければ亀戸・大島
-const AREAS = { kozdai: 'data/area-kozdai.json', 'kozdai-wide': 'data/area-kozdai-wide.json' };
+// 地区: ?area=kozdai（神戸市北区 上津台・鹿の子台）／ kozdai-joint（同じ町を 1 台で。共同配送）。なければ亀戸・大島
+const AREAS = { kozdai: 'data/area-kozdai.json', 'kozdai-joint': 'data/area-kozdai-joint.json' };
 const askedArea = new URLSearchParams(location.search).get('area');
 export const AREA_ID = AREAS[askedArea] ? askedArea : 'koto';
 export const $ = (s) => document.querySelector(s);
